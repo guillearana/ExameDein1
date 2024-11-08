@@ -1,0 +1,5 @@
+url=jdbc:mysql://localhost:33066/examen1
+user=prof
+password=1234
+idioma=es
+region=ES
