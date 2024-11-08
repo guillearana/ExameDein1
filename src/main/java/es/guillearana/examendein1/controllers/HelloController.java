@@ -1,6 +1,7 @@
 package es.guillearana.examendein1.controllers;
 
 import es.guillearana.examendein1.model.Producto;
+import es.guillearana.examendein1.dao.ProductoDao;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -17,6 +18,8 @@ import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.event.ActionEvent;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+
+import java.sql.SQLException;
 
 public class HelloController {
 
@@ -63,6 +66,7 @@ public class HelloController {
     private ImageView imagenView;
 
     private ObservableList<Producto> productos = FXCollections.observableArrayList();
+    private ProductoDao productoDao;
     private FileChooser fileChooser = new FileChooser();
 
     @FXML
@@ -81,6 +85,25 @@ public class HelloController {
 
         // Filtro de archivo para imágenes
         fileChooser.getExtensionFilters().add(new ExtensionFilter("Imágenes", "*.jpg", "*.png"));
+
+        // Crear el DAO
+        try {
+            productoDao = new ProductoDao(); // Inicializamos el DAO
+        } catch (SQLException e) {
+            e.printStackTrace();
+            mostrarError("Error de conexión", "No se pudo conectar a la base de datos.");
+        }
+
+        // Cargar productos de la base de datos
+        cargarProductos();
+    }
+
+    private void cargarProductos() {
+        try {
+            productos.setAll(productoDao.obtenerTodos());
+        } catch (SQLException e) {
+            mostrarError("Error al cargar productos", "Hubo un error al cargar los productos.");
+        }
     }
 
     @FXML
@@ -133,10 +156,9 @@ public class HelloController {
         // Crear un nuevo producto
         Producto producto = new Producto(codigo, nombre, precio, disponibleCheckBox.isSelected());
 
-        // Intentar guardar el producto en la base de datos (aquí debes incluir tu lógica de base de datos)
+        // Intentar guardar el producto en la base de datos
         try {
-            // Ejemplo de guardado en base de datos, aquí debes conectar tu lógica
-            // guardarProductoEnBaseDeDatos(producto);
+            productoDao.crear(producto);  // Guardar el producto en la base de datos
 
             // Agregar producto a la lista y refrescar la tabla
             productos.add(producto);
@@ -145,7 +167,7 @@ public class HelloController {
             // Limpiar el formulario y mostrar éxito
             limpiarCampos();
             mostrarExito("Producto creado exitosamente.");
-        } catch (Exception e) {
+        } catch (SQLException e) {
             // Mostrar error si ocurre un fallo en la base de datos
             mostrarError("Error en la base de datos", "Hubo un error al guardar el producto.");
         }
@@ -169,8 +191,14 @@ public class HelloController {
 
             productoSeleccionado.setDisponible(disponibleCheckBox.isSelected());
 
-            // Refrescar la tabla
-            table.refresh();
+            // Intentar actualizar el producto en la base de datos
+            try {
+                productoDao.actualizar(productoSeleccionado);
+                table.refresh();
+                mostrarExito("Producto actualizado exitosamente.");
+            } catch (SQLException e) {
+                mostrarError("Error al actualizar producto", "Hubo un error al actualizar el producto.");
+            }
 
             // Deshabilitar el botón de actualizar y limpiar los campos
             actualizarButton.setDisable(true);
