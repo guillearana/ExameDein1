@@ -50,7 +50,7 @@ public class Main extends Application {
 
             // Crear la escena y agregar hojas de estilo
             FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("hello-view.fxml"));
-            Scene scene = new Scene(fxmlLoader.load(), 475, 627);
+            Scene scene = new Scene(fxmlLoader.load(), 575, 627);
             //scene.getStylesheets().add(getClass().getResource("/css/estilos.css").toExternalForm());
             primaryStage.setMaxHeight(755);
             primaryStage.setMaxWidth(1150);

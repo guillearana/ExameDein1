@@ -3,13 +3,8 @@ package es.guillearana.examendein1.controllers;
 import es.guillearana.examendein1.model.Producto;
 import es.guillearana.examendein1.dao.ProductoDao;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
+import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -20,7 +15,15 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.sql.SQLException;
+import java.util.Optional;
 
+/**
+ * Controlador principal de la interfaz de usuario de la aplicación.
+ *
+ * Esta clase gestiona los eventos de la interfaz de usuario y las interacciones
+ * con los productos. Permite crear, actualizar, eliminar y visualizar productos
+ * en una tabla. Además, se encarga de manejar la carga de imágenes para los productos.
+ */
 public class HelloController {
 
     @FXML
@@ -69,8 +72,14 @@ public class HelloController {
     private ProductoDao productoDao;
     private FileChooser fileChooser = new FileChooser();
 
+    /**
+     * Método que inicializa la vista, configura las columnas de la tabla y carga los productos
+     * desde la base de datos.
+     *
+     * @throws SQLException si ocurre un error al cargar los productos desde la base de datos
+     */
     @FXML
-    public void initialize() {
+    public void initialize() throws SQLException {
         // Configurar columnas de la tabla
         codigoColumn.setCellValueFactory(new PropertyValueFactory<>("codigo"));
         nombreColumn.setCellValueFactory(new PropertyValueFactory<>("nombre"));
@@ -86,19 +95,25 @@ public class HelloController {
         // Filtro de archivo para imágenes
         fileChooser.getExtensionFilters().add(new ExtensionFilter("Imágenes", "*.jpg", "*.png"));
 
-        // Crear el DAO
-        try {
-            productoDao = new ProductoDao(); // Inicializamos el DAO
-        } catch (SQLException e) {
-            e.printStackTrace();
-            mostrarError("Error de conexión", "No se pudo conectar a la base de datos.");
-        }
-
         // Cargar productos de la base de datos
         cargarProductos();
+
+        // Crear y asignar el menú contextual
+        ContextMenu contextMenu = new ContextMenu();
+        MenuItem eliminarItem = new MenuItem("Eliminar");
+        eliminarItem.setOnAction(event -> onEliminarMenuItemClicked()); // Acción al hacer clic en Eliminar
+        contextMenu.getItems().add(eliminarItem);
+        table.setContextMenu(contextMenu);
     }
 
-    private void cargarProductos() {
+    /**
+     * Carga los productos desde la base de datos y los muestra en la tabla.
+     *
+     * @throws SQLException si ocurre un error al cargar los productos desde la base de datos
+     */
+    private void cargarProductos() throws SQLException {
+        // Crear el DAO
+        productoDao = new ProductoDao(); // Inicializamos el DAO
         try {
             productos.setAll(productoDao.obtenerTodos());
         } catch (SQLException e) {
@@ -106,6 +121,12 @@ public class HelloController {
         }
     }
 
+    /**
+     * Método que se ejecuta cuando se hace clic en el botón para seleccionar una imagen.
+     * Muestra un selector de archivos y establece la imagen seleccionada en el ImageView.
+     *
+     * @param event el evento de clic en el botón
+     */
     @FXML
     void onSeleccionarImagenButtonClicked(ActionEvent event) {
         // Mostrar el FileChooser para seleccionar una imagen
@@ -117,14 +138,23 @@ public class HelloController {
         }
     }
 
+    /**
+     * Método que se ejecuta cuando se hace clic en el botón de crear producto.
+     * Valida los datos y guarda el nuevo producto en la base de datos.
+     *
+     * @param event el evento de clic en el botón
+     * @throws SQLException si ocurre un error al guardar el producto en la base de datos
+     */
     @FXML
-    void onCrearButtonClicked(ActionEvent event) {
+    void onCrearButtonClicked(ActionEvent event) throws SQLException {
         // Validación de datos
         StringBuilder errores = new StringBuilder();
 
         String codigo = codigoField.getText();
         String nombre = nombreField.getText();
         String precioStr = precioField.getText();
+        // Crear el DAO
+        productoDao = new ProductoDao(); // Inicializamos el DAO
 
         // Verificar que el código tenga exactamente 5 caracteres
         if (codigo.length() != 5) {
@@ -173,8 +203,15 @@ public class HelloController {
         }
     }
 
+    /**
+     * Método que se ejecuta cuando se hace clic en el botón de actualizar producto.
+     * Actualiza el producto seleccionado en la base de datos.
+     *
+     * @param event el evento de clic en el botón
+     * @throws SQLException si ocurre un error al actualizar el producto en la base de datos
+     */
     @FXML
-    void onActualizarButtonClicked(ActionEvent event) {
+    void onActualizarButtonClicked(ActionEvent event) throws SQLException {
         // Obtener el producto seleccionado
         Producto productoSeleccionado = table.getSelectionModel().getSelectedItem();
         if (productoSeleccionado != null) {
@@ -191,6 +228,12 @@ public class HelloController {
 
             productoSeleccionado.setDisponible(disponibleCheckBox.isSelected());
 
+            // Verificar si se seleccionó una nueva imagen
+            if (imagenView.getImage() != null) {
+                // Asignar la imagen seleccionada al producto (deberás implementar el manejo de la imagen)
+                // productoSeleccionado.setImagen(imagenView.getImage());
+            }
+
             // Intentar actualizar el producto en la base de datos
             try {
                 productoDao.actualizar(productoSeleccionado);
@@ -203,50 +246,79 @@ public class HelloController {
             // Deshabilitar el botón de actualizar y limpiar los campos
             actualizarButton.setDisable(true);
             limpiarCampos();
+            // Habilitar "Crear" y restablecer "Código"
+            crearButton.setDisable(false);
+            codigoField.setDisable(false);
         }
     }
 
-    @FXML
-    void onLimpiarButtonClicked(ActionEvent event) {
-        limpiarCampos();
-    }
-
-    @FXML
-    void onTableClicked() {
-        // Obtener el producto seleccionado
+    /**
+     * Método que se ejecuta cuando se hace clic en el ítem de eliminar en el menú contextual.
+     * Elimina el producto seleccionado de la base de datos y de la tabla.
+     */
+    private void onEliminarMenuItemClicked(){
         Producto productoSeleccionado = table.getSelectionModel().getSelectedItem();
+        // Crear el DAO
+        productoDao = new ProductoDao(); // Inicializamos el DAO
         if (productoSeleccionado != null) {
-            // Llenar los campos con los datos del producto seleccionado
-            codigoField.setText(productoSeleccionado.getCodigo());
-            nombreField.setText(productoSeleccionado.getNombre());
-            precioField.setText(String.valueOf(productoSeleccionado.getPrecio()));
-            disponibleCheckBox.setSelected(productoSeleccionado.isDisponible());
+            // Crear la alerta de confirmación
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Confirmar eliminación");
+            alert.setHeaderText("¿Estás seguro de que quieres eliminar el producto?");
+            alert.setContentText("Esta acción no puede deshacerse.");
+            Optional<ButtonType> result = alert.showAndWait();
 
-            // Habilitar el botón de actualizar
-            actualizarButton.setDisable(false);
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                try {
+                    // Intentar eliminar el producto de la base de datos
+                    productoDao.eliminar(productoSeleccionado.getCodigo());
+
+                    // Eliminar producto de la lista y refrescar la tabla
+                    productos.remove(productoSeleccionado);
+                    table.refresh();
+
+                    // Mostrar mensaje de éxito
+                    mostrarExito("Producto eliminado exitosamente.");
+                } catch (SQLException e) {
+                    // Mostrar mensaje de error si no se puede eliminar
+                    mostrarError("Error al eliminar producto", "Hubo un error al eliminar el producto.");
+                }
+            }
         }
     }
 
+    /**
+     * Limpia todos los campos del formulario.
+     */
     private void limpiarCampos() {
         codigoField.clear();
         nombreField.clear();
         precioField.clear();
         disponibleCheckBox.setSelected(false);
-        imagenView.setImage(null);  // Limpiar la vista previa de la imagen
+        imagenView.setImage(null);
     }
 
+    /**
+     * Muestra una alerta de error con un título y un mensaje.
+     *
+     * @param titulo el título de la alerta
+     * @param mensaje el mensaje a mostrar en la alerta
+     */
     private void mostrarError(String titulo, String mensaje) {
-        Alert alert = new Alert(AlertType.ERROR);
+        Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(titulo);
-        alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
 
+    /**
+     * Muestra una alerta de éxito con un mensaje.
+     *
+     * @param mensaje el mensaje a mostrar en la alerta
+     */
     private void mostrarExito(String mensaje) {
-        Alert alert = new Alert(AlertType.INFORMATION);
-        alert.setTitle("Éxito");
-        alert.setHeaderText(null);
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Operación exitosa");
         alert.setContentText(mensaje);
         alert.showAndWait();
     }

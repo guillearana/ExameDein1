@@ -48,11 +48,31 @@ public class ConexionBD {
 	}
 
 	/**
-	 * Cierra la conexión a la base de datos.
+	 * Cierra la conexión con la base de datos.
 	 *
-	 * @throws SQLException si ocurre un error al intentar cerrar la conexión
+	 * Este método comprueba si la conexión está activa antes de intentar cerrarla.
+	 * Si la conexión se cierra exitosamente, se imprime un mensaje indicando que
+	 * la conexión ha sido cerrada.
+	 *
+	 * @throws SQLException Si hay un error al cerrar la conexión,
+	 *                     como si la conexión ya se encuentra cerrada.
 	 */
-	public void closeConexion() throws SQLException {
-		conexion.close();
+	public boolean isConnectionClosed(Connection conn) {
+		try {
+			return conn == null || conn.isClosed();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return true;
+		}
+	}
+
+	/**
+	 * Verifica si la conexión está abierta.
+	 *
+	 * @return true si la conexión está abierta, false en caso contrario.
+	 * @throws SQLException Si hay un error al verificar el estado de la conexión.
+	 */
+	public boolean isConnected() throws SQLException {
+		return conexion != null && !conexion.isClosed();
 	}
 }
