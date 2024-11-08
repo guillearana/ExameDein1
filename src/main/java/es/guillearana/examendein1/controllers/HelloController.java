@@ -79,7 +79,7 @@ public class HelloController {
         // Deshabilitar el botón de actualizar al inicio
         actualizarButton.setDisable(true);
 
-        // Filtro de archivo para imagenes
+        // Filtro de archivo para imágenes
         fileChooser.getExtensionFilters().add(new ExtensionFilter("Imágenes", "*.jpg", "*.png"));
     }
 
@@ -90,7 +90,7 @@ public class HelloController {
         if (archivo != null) {
             // Mostrar la imagen seleccionada en el ImageView
             Image image = new Image(archivo.toURI().toString());
-            imagenView.setImage(image);
+            imagenView.setImage(image);  // Establecer la imagen en el ImageView
         }
     }
 
